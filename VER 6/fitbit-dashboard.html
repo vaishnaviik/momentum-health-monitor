@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Momentum Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+body{
+  margin:0;
+  font-family:Arial, Helvetica, sans-serif;
+  background:#0a0a0a;
+  color:white;
+}
+
+h1{text-align:center;color:#ff4d6d;}
+
+.card{
+  background:#000;
+  border-radius:16px;
+  padding:20px;
+  margin:20px auto;
+  width:85%;
+  box-shadow:0 0 20px rgba(255,77,109,0.2);
+}
+
+.section-title{
+  color:#ff4d6d;
+  margin-bottom:10px;
+}
+
+/* GRAPH GRID */
+.graphs{
+  display:grid;
+  grid-template-columns: repeat(2, minmax(400px,1fr));
+  gap:20px;
+  overflow-x:auto;
+  padding-bottom:10px;
+}
+
+.graph-box{
+  background:#111;
+  border-radius:16px;
+  padding:15px;
+  min-width:400px;
+}
+
+/* DATE BUTTONS */
+.date-buttons{
+  display:flex;
+  gap:10px;
+  overflow-x:auto;
+  margin-top:20px;
+}
+
+.date-btn{
+  padding:10px 15px;
+  border-radius:12px;
+  background:#222;
+  color:white;
+  cursor:pointer;
+  border:1px solid #ff4d6d;
+  transition:0.3s;
+}
+
+.date-btn:hover{
+  background:#ff4d6d;
+}
+
+/* HOVER CARDS */
+.hover-cards{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+  gap:15px;
+  margin-top:20px;
+}
+
+.stat-card{
+  background:linear-gradient(135deg,#ff4d6d,#ff9f1c);
+  padding:15px;
+  border-radius:14px;
+  text-align:center;
+  color:black;
+  font-weight:bold;
+}
+
+/* AI COACH */
+#chatBox{
+  height:250px;
+  overflow-y:auto;
+  border:1px solid #444;
+  padding:10px;
+  background:#111;
+}
+
+input{
+  width:75%;
+  padding:10px;
+}
+
+button{
+  padding:10px;
+  background:#ff4d6d;
+  color:white;
+  border:none;
+  cursor:pointer;
+}
+
+.nodata{color:#ff4d6d;font-style:italic;}
+</style>
+</head>
+
+<body>
+
+<h1>Momentum - Fitness Analytics</h1>
+
+<div class="card" id="profile"></div>
+
+<div class="card">
+<h3 class="section-title">Body Info</h3>
+<div id="bodyInfo"></div>
+</div>
+
+<div class="card">
+<h3 class="section-title">Graphs</h3>
+
+<div class="graphs">
+  <div class="graph-box"><canvas id="stepsChart"></canvas></div>
+  <div class="graph-box"><canvas id="caloriesChart"></canvas></div>
+  <div class="graph-box"><canvas id="heartChart"></canvas></div>
+  <div class="graph-box"><canvas id="sleepChart"></canvas></div>
+</div>
+
+<div class="date-buttons" id="dateButtons"></div>
+
+<div class="hover-cards" id="hoverCards"></div>
+</div>
+
+<div class="card">
+<h3 class="section-title">AI Coach</h3>
+<div id="chatBox"></div>
+<input id="userInput" placeholder="Ask coach...">
+<button onclick="sendMessage()">Send</button>
+</div>
+
+<script>
+let fitnessData=[];
+
+window.onload=async()=>{
+  await loadProfile();
+  await loadFitness();
+  await autoCoach();
+};
+
+function show(val,unit=""){
+  if(!val||val===0)return "<span class='nodata'>Data not collected</span>";
+  return val+unit;
+}
+
+async function loadProfile(){
+  const res=await fetch("/getProfile");
+  const data=await res.json();
+  document.getElementById("profile").innerHTML=
+    `<b>Name:</b> ${data.name} |
+     <b>Age:</b> ${data.age} |
+     <b>Gender:</b> ${data.gender}`;
+}
+
+async function loadFitness(){
+  const res=await fetch("/getFitnessData",{credentials:"include"});
+  fitnessData=await res.json();
+
+  const last=fitnessData[fitnessData.length-1];
+  document.getElementById("bodyInfo").innerHTML=
+    `<b>Weight:</b> ${show(last.weightKg," kg")} <br>
+     <b>Height:</b> ${last.heightMeters?last.heightMeters.toFixed(2):0} m`;
+
+  buildCharts();
+  buildDateButtons();
+}
+
+function buildCharts(){
+  const labels=fitnessData.map(d=>d.date);
+
+  new Chart(stepsChart,{
+    type:'line',
+    data:{
+      labels,
+      datasets:[{
+        label:"Steps",
+        data:fitnessData.map(d=>d.steps),
+        borderColor:"#00d4ff",
+        tension:0.4
+      }]
+    }
+  });
+
+  new Chart(caloriesChart,{
+    type:'line',
+    data:{
+      labels,
+      datasets:[{
+        label:"Calories",
+        data:fitnessData.map(d=>d.calories),
+        borderColor:"#ffb703",
+        tension:0.4
+      }]
+    }
+  });
+
+  new Chart(heartChart,{
+    type:'line',
+    data:{
+      labels,
+      datasets:[{
+        label:"Heart Rate",
+        data:fitnessData.map(d=>d.avgHeartRate),
+        borderColor:"#ff4d6d",
+        tension:0.4
+      }]
+    }
+  });
+
+  new Chart(sleepChart,{
+    type:'line',
+    data:{
+      labels,
+      datasets:[{
+        label:"Sleep",
+        data:fitnessData.map(d=>d.sleepSegments),
+        borderColor:"#9b5de5",
+        tension:0.4
+      }]
+    }
+  });
+}
+
+function buildDateButtons(){
+  const container=document.getElementById("dateButtons");
+  fitnessData.forEach((d,i)=>{
+    const btn=document.createElement("div");
+    btn.className="date-btn";
+    btn.innerText=d.date;
+    btn.onmouseover=()=>showDayStats(i);
+    container.appendChild(btn);
+  });
+}
+
+function showDayStats(i){
+  const d=fitnessData[i];
+  document.getElementById("hoverCards").innerHTML=
+  `
+  <div class="stat-card">❤️ ${show(d.avgHeartRate," bpm")}</div>
+  <div class="stat-card">👟 ${show(d.steps)}</div>
+  <div class="stat-card">🔥 ${show(d.calories)}</div>
+  <div class="stat-card">😴 ${show(d.sleepSegments)}</div>
+  `;
+}
+
+async function autoCoach(){
+  addChat("Coach","Analyzing your 7 day data...");
+  const res=await fetch("/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({message:"Give me advice"})});
+  const data=await res.json();
+  addChat("Coach",data.reply);
+}
+
+async function sendMessage(){
+  const msg=document.getElementById("userInput").value;
+  if(!msg)return;
+  addChat("You",msg);
+  document.getElementById("userInput").value="";
+  const res=await fetch("/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({message:msg})});
+  const data=await res.json();
+  addChat("Coach",data.reply);
+}
+
+function addChat(sender,text){
+  const box=document.getElementById("chatBox");
+  box.innerHTML+=`<b>${sender}:</b> ${text}<br><br>`;
+  box.scrollTop=box.scrollHeight;
+}
+</script>
+
+</body>
+</html>

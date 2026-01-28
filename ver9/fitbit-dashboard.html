@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Momentum Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+body{
+  margin:0;
+  font-family:Arial, Helvetica, sans-serif;
+  color:white;
+  background: url("imagep1.jpeg") no-repeat center center fixed;
+  background-size: cover;
+  min-height:100vh;
+}
+
+.chat-input-area{
+  display:flex;
+  gap:12px;
+  align-items:center;
+}
+
+#userInput{
+  flex:1;
+  padding:14px 18px;
+  border-radius:30px;
+  border:2px solid #ff4d6d;
+  background:#000;
+  color:white;
+  outline:none;
+  font-size:15px;
+  transition:0.3s;
+}
+
+#userInput::placeholder{ color:#bbb; }
+
+#userInput:focus{
+  box-shadow:0 0 12px rgba(255,77,109,0.6);
+}
+
+.send-btn{
+  padding:14px 26px;
+  border-radius:30px;
+  background:#ff4d6d;
+  color:white;
+  border:none;
+  cursor:pointer;
+  font-weight:600;
+  font-size:14px;
+  transition:0.3s ease;
+  box-shadow:0 0 10px rgba(255,77,109,0.5);
+}
+
+.send-btn:hover{
+  background:#ff2f5c;
+  box-shadow:0 0 15px rgba(255,77,109,0.8);
+  transform:translateY(-1px);
+}
+
+h1{text-align:center;color:#ff4d6d;}
+
+.card{
+  background:#000;
+  border-radius:16px;
+  padding:20px;
+  margin:20px auto;
+  width:85%;
+  box-shadow:0 0 20px rgba(255,77,109,0.2);
+}
+
+.section-title{color:#ff4d6d;margin-bottom:10px;}
+
+.profile-boxes,.body-boxes{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+  gap:15px;
+}
+
+.info-box{
+  background:#6a6869;
+  padding:15px;
+  border-radius:14px;
+  text-align:center;
+  font-weight:bold;
+}
+
+.graphs{
+  display:grid;
+  grid-template-columns: repeat(2, minmax(400px,1fr));
+  gap:20px;
+  overflow-x:auto;
+}
+
+.graph-box{
+  background:#111;
+  border-radius:16px;
+  padding:15px;
+  min-width:400px;
+}
+
+.date-buttons{
+  display:flex;
+  gap:10px;
+  margin-top:20px;
+}
+
+.date-btn{
+  padding:10px 15px;
+  border-radius:12px;
+  background:#222;
+  cursor:pointer;
+  border:1px solid #ff4d6d;
+  position:relative;
+}
+
+.date-btn:hover{background:#ff4d6d;}
+
+.tooltip{
+  position:absolute;
+  bottom:120%;
+  left:50%;
+  transform:translateX(-50%);
+  background:#f63562;
+  padding:10px 12px;
+  border-radius:10px;
+  display:none;
+  font-size:13px;
+  box-shadow:0 0 15px rgba(246,53,98,0.8);
+  white-space: nowrap;
+  z-index: 1000;
+}
+
+#aiButton{
+  position:fixed;
+  bottom:20px;
+  right:20px;
+  background:#ff4d6d;
+  padding:15px 20px;
+  border-radius:50px;
+  cursor:pointer;
+  box-shadow: 0 4px 15px rgba(255,77,109,0.6);
+  transition: 0.3s;
+}
+
+#aiButton:hover{
+  transform: scale(1.05);
+  box-shadow: 0 6px 20px rgba(255,77,109,0.8);
+}
+
+#aiPopup{
+  position:fixed;
+  bottom:90px;
+  right:20px;
+  width:380px;
+  background:#111;
+  border-radius:16px;
+  padding:15px;
+  box-shadow:0 0 20px rgba(255,77,109,0.6);
+  opacity:0;
+  transform:translateY(20px) scale(0.9);
+  transition:0.35s;
+  pointer-events:none;
+}
+
+#aiPopup.show{
+  opacity:1;
+  transform:translateY(0) scale(1);
+  pointer-events:auto;
+}
+
+#chatBox{
+  height:200px;
+  overflow-y:auto;
+  border:1px solid #444;
+  padding:10px;
+  background:#000;
+  margin-bottom:10px;
+  border-radius: 8px;
+}
+
+#chatBox::-webkit-scrollbar {
+  width: 6px;
+}
+
+#chatBox::-webkit-scrollbar-thumb {
+  background: #ff4d6d;
+  border-radius: 3px;
+}
+
+.notification-status {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 12px 20px;
+  background: #111;
+  border: 1px solid #ff4d6d;
+  border-radius: 12px;
+  display: none;
+  z-index: 9999;
+  font-size: 14px;
+}
+
+.notification-status.show {
+  display: block;
+}
+
+.notification-status.success {
+  border-color: #4ade80;
+  color: #4ade80;
+}
+
+.notification-status.error {
+  border-color: #ff4d6d;
+  color: #ff4d6d;
+}
+</style>
+</head>
+
+<body>
+
+<div id="notificationStatus" class="notification-status"></div>
+
+<h1>MOMENTUM - built on movement, designed for health.</h1>
+
+<div class="card">
+<h3 class="section-title">Profile</h3>
+<div class="profile-boxes" id="profileBoxes"></div>
+</div>
+
+<div class="card">
+<h3 class="section-title">Body Info</h3>
+<div class="body-boxes" id="bodyBoxes"></div>
+</div>
+
+<div class="card">
+<h3 class="section-title">Graphs</h3>
+
+<div class="graphs">
+  <div class="graph-box"><canvas id="stepsChart"></canvas></div>
+  <div class="graph-box"><canvas id="caloriesChart"></canvas></div>
+  <div class="graph-box"><canvas id="heartChart"></canvas></div>
+  <div class="graph-box"><canvas id="sleepChart"></canvas></div>
+</div>
+
+<div class="date-buttons" id="dateButtons"></div>
+</div>
+
+<div id="aiButton" onclick="toggleAI()">🤖 TOM</div>
+  
+<div id="aiPopup">
+  <div id="chatBox"></div>
+
+  <div class="chat-input-area">
+    <input id="userInput" placeholder="Ask coach..." onkeydown="handleEnter(event)">
+    <button class="send-btn" onclick="sendMessage()">Send</button>
+  </div>
+</div>
+
+<script>
+let fitnessData = [];
+let swRegistration = null;
+
+/* =========================
+   UTILITY: BASE64 CONVERSION
+========================= */
+function urlBase64ToUint8Array(base64String) {
+  const padding = "=".repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding)
+    .replace(/-/g, "+")
+    .replace(/_/g, "/");
+
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
+/* =========================
+   NOTIFICATION STATUS
+========================= */
+function showNotificationStatus(message, isSuccess) {
+  const status = document.getElementById("notificationStatus");
+  status.textContent = message;
+  status.className = `notification-status show ${isSuccess ? 'success' : 'error'}`;
+  
+  setTimeout(() => {
+    status.classList.remove('show');
+  }, 3000);
+}
+
+/* =========================
+   ENABLE PUSH NOTIFICATIONS
+========================= */
+async function enableNotifications() {
+  console.log("🔔 Enabling notifications...");
+
+  try {
+    // Check if service workers are supported
+    if (!("serviceWorker" in navigator)) {
+      showNotificationStatus("Service workers not supported", false);
+      console.error("❌ Service workers not supported");
+      return;
+    }
+
+    // Check if notifications are supported
+    if (!("Notification" in window)) {
+      showNotificationStatus("Notifications not supported", false);
+      console.error("❌ Notifications not supported");
+      return;
+    }
+
+    // Check if push messaging is supported
+    if (!("PushManager" in window)) {
+      showNotificationStatus("Push messaging not supported", false);
+      console.error("❌ Push messaging not supported");
+      return;
+    }
+
+    // Register service worker
+    console.log("📝 Registering service worker...");
+    swRegistration = await navigator.serviceWorker.register("/sw.js");
+    console.log("✅ Service worker registered");
+
+    // Wait for service worker to be ready
+    await navigator.serviceWorker.ready;
+    console.log("✅ Service worker ready");
+
+    // Request notification permission
+    console.log("🔔 Requesting notification permission...");
+    const permission = await Notification.requestPermission();
+    console.log(`📋 Permission: ${permission}`);
+
+    if (permission !== "granted") {
+      showNotificationStatus("Notification permission denied", false);
+      console.warn("⚠️ Notification permission denied");
+      return;
+    }
+
+    showNotificationStatus("Permission granted", true);
+
+    // Check for existing subscription
+    console.log("🔍 Checking for existing subscription...");
+    let existingSubscription = await swRegistration.pushManager.getSubscription();
+    
+    if (existingSubscription) {
+      console.log("🗑️ Found old subscription, unsubscribing...");
+      await existingSubscription.unsubscribe();
+      console.log("✅ Old subscription removed");
+    }
+
+    // Subscribe to push notifications with new key
+    console.log("📱 Creating new subscription...");
+    const subscription = await swRegistration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(
+        "BCY7ghlaULhsbKwbGjKZsgBRuQz5eVaQa-dIx8MLhKiHpWanXcajPCjhUUKwq7rTrYPRgV2-WWUswsLh5QU1WFQ"
+      )
+    });
+
+    console.log("📤 Sending subscription to server...");
+    const response = await fetch("/subscribe", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(subscription)
+    });
+
+    if (response.ok) {
+      showNotificationStatus("✅ Notifications enabled!", true);
+      console.log("✅ Push notification setup complete");
+      
+      // Show a test notification
+      if (swRegistration.showNotification) {
+        swRegistration.showNotification("Momentum", {
+          body: "Notifications enabled successfully! 🎉",
+          icon: "/icon.png",
+          badge: "/badge.png"
+        });
+      }
+    } else {
+      throw new Error("Failed to send subscription to server");
+    }
+
+  } catch (err) {
+    console.error("❌ Notification setup failed:", err);
+    showNotificationStatus(`Setup failed: ${err.message}`, false);
+  }
+}
+
+/* =========================
+   PAGE LOAD
+========================= */
+window.onload = async () => {
+  console.log("🚀 Page loaded");
+  
+  await loadProfile();
+  await loadFitness();
+  await autoCoach();
+  
+  // Enable notifications after page load
+  setTimeout(() => {
+    enableNotifications();
+  }, 1000);
+};
+
+/* =========================
+   UI FUNCTIONS
+========================= */
+function toggleAI() {
+  document.getElementById("aiPopup").classList.toggle("show");
+}
+
+function show(val, unit = "") {
+  if (!val || val === 0) return "No data";
+  return val + unit;
+}
+
+function handleEnter(event) {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    sendMessage();
+  }
+}
+
+/* =========================
+   PROFILE
+========================= */
+async function loadProfile() {
+  try {
+    const res = await fetch("/getProfile");
+    const data = await res.json();
+    document.getElementById("profileBoxes").innerHTML = `
+      <div class="info-box">Name: ${data.name}</div>
+      <div class="info-box">Age: ${data.age}</div>
+      <div class="info-box">Gender: ${data.gender}</div>
+    `;
+  } catch (err) {
+    console.error("Profile load error:", err);
+  }
+}
+
+/* =========================
+   FITNESS DATA
+========================= */
+async function loadFitness() {
+  try {
+    const res = await fetch("/getFitnessData", { credentials: "include" });
+    fitnessData = await res.json();
+
+    const last = fitnessData[fitnessData.length - 1];
+    document.getElementById("bodyBoxes").innerHTML = `
+      <div class="info-box">Weight: ${show(last.weightKg, " kg")}</div>
+      <div class="info-box">Height: ${last.heightMeters ? last.heightMeters.toFixed(2) : 0} m</div>
+    `;
+
+    buildCharts();
+    buildDateButtons();
+  } catch (err) {
+    console.error("Fitness load error:", err);
+  }
+}
+
+/* =========================
+   CHARTS
+========================= */
+function buildCharts() {
+  const labels = fitnessData.map(d => d.date);
+
+  new Chart(document.getElementById("stepsChart"), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: "Steps",
+        data: fitnessData.map(d => d.steps),
+        borderColor: "#00d4ff",
+        backgroundColor: "rgba(0, 212, 255, 0.1)",
+        tension: 0.4,
+        fill: true
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true
+    }
+  });
+
+  new Chart(document.getElementById("caloriesChart"), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: "Calories",
+        data: fitnessData.map(d => d.calories),
+        borderColor: "#ffb703",
+        backgroundColor: "rgba(255, 183, 3, 0.1)",
+        tension: 0.4,
+        fill: true
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true
+    }
+  });
+
+  new Chart(document.getElementById("heartChart"), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: "Heart Rate",
+        data: fitnessData.map(d => d.avgHeartRate),
+        borderColor: "#ff4d6d",
+        backgroundColor: "rgba(255, 77, 109, 0.1)",
+        tension: 0.4,
+        fill: true
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true
+    }
+  });
+
+  new Chart(document.getElementById("sleepChart"), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: "Sleep Segments",
+        data: fitnessData.map(d => d.sleepSegments),
+        borderColor: "#9b5de5",
+        backgroundColor: "rgba(155, 93, 229, 0.1)",
+        tension: 0.4,
+        fill: true
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true
+    }
+  });
+}
+
+/* =========================
+   DATE TOOLTIP
+========================= */
+function buildDateButtons() {
+  const container = document.getElementById("dateButtons");
+  container.innerHTML = "";
+
+  fitnessData.forEach(d => {
+    const btn = document.createElement("div");
+    btn.className = "date-btn";
+    btn.innerText = d.date;
+
+    const tooltip = document.createElement("div");
+    tooltip.className = "tooltip";
+    tooltip.innerHTML = `
+      ❤️ ${show(d.avgHeartRate, " bpm")}<br>
+      👟 ${show(d.steps)}<br>
+      🔥 ${show(d.calories)}<br>
+      😴 ${show(d.sleepSegments)}
+    `;
+
+    btn.appendChild(tooltip);
+    btn.onmouseenter = () => tooltip.style.display = "block";
+    btn.onmouseleave = () => tooltip.style.display = "none";
+
+    container.appendChild(btn);
+  });
+}
+
+/* =========================
+   AI AUTO MESSAGE
+========================= */
+async function autoCoach() {
+  addChat("TOM", "Thinking...");
+  try {
+    const res = await fetch("/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: "Give me advice" })
+    });
+    const data = await res.json();
+    
+    // Remove "Thinking..." message
+    const chatBox = document.getElementById("chatBox");
+    if (chatBox.lastChild) {
+      chatBox.removeChild(chatBox.lastChild);
+    }
+    
+    typeWriter("TOM", data.reply);
+  } catch (err) {
+    console.error("Auto coach error:", err);
+  }
+}
+
+/* =========================
+   SEND MESSAGE
+========================= */
+async function sendMessage() {
+  const msg = document.getElementById("userInput").value;
+  if (!msg) return;
+
+  addChat("You", msg);
+  document.getElementById("userInput").value = "";
+
+  addChat("TOM", "Thinking...");
+
+  try {
+    const res = await fetch("/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: msg })
+    });
+    const data = await res.json();
+
+    const chatBox = document.getElementById("chatBox");
+    if (chatBox.lastChild) {
+      chatBox.removeChild(chatBox.lastChild);
+    }
+    
+    typeWriter("TOM", data.reply);
+  } catch (err) {
+    console.error("Chat error:", err);
+    addChat("TOM", "Sorry, I encountered an error.");
+  }
+}
+
+/* =========================
+   CHAT FUNCTIONS
+========================= */
+function addChat(sender, text) {
+  const box = document.getElementById("chatBox");
+  const div = document.createElement("div");
+  div.innerHTML = `<b>${sender}:</b> ${text}`;
+  div.style.marginBottom = "8px";
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
+}
+
+/* =========================
+   TYPE WRITER EFFECT
+========================= */
+function typeWriter(sender, text) {
+  const box = document.getElementById("chatBox");
+  const div = document.createElement("div");
+  div.innerHTML = `<b>${sender}:</b> `;
+  div.style.marginBottom = "8px";
+  box.appendChild(div);
+
+  let i = 0;
+  const speed = 25;
+
+  function typing() {
+    if (i < text.length) {
+      div.innerHTML += text.charAt(i);
+      i++;
+      box.scrollTop = box.scrollHeight;
+      setTimeout(typing, speed);
+    }
+  }
+  typing();
+}
+</script>
+
+</body>
+</html>

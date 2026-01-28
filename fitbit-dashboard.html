@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>AI Fitness Dashboard</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f2f6ff;
+      padding: 20px;
+    }
+    #chatBox {
+      border: 1px solid #ccc;
+      height: 300px;
+      overflow-y: auto;
+      padding: 10px;
+      background: #fff;
+      margin-top: 10px;
+    }
+    input {
+      width: 80%;
+      padding: 10px;
+    }
+    button {
+      padding: 10px 15px;
+      margin-top: 5px;
+    }
+    pre {
+      background: #111;
+      color: #0f0;
+      padding: 10px;
+    }
+  </style>
+</head>
+<body>
+
+<h2>🏃 AI Fitness Coach Dashboard</h2>
+
+<div id="profile"></div>
+
+<button onclick="loadFitness()">🔄 Load Fitness Data</button>
+
+<h3>Fitness Data</h3>
+<pre id="fitnessOutput"></pre>
+
+<h3>AI Coach</h3>
+<div id="chatBox"></div>
+
+<input type="text" id="userInput" placeholder="Ask your coach..." />
+<button onclick="sendMessage()">Send</button>
+
+<script>
+window.onload = async () => {
+  await loadProfile();
+  await loadFitness();
+  await autoCoach();
+};
+
+async function loadProfile() {
+  const res = await fetch("/getProfile");
+  const data = await res.json();
+  document.getElementById("profile").innerHTML =
+    `<b>Name:</b> ${data.name} | <b>Age:</b> ${data.age}`;
+}
+
+async function loadFitness() {
+  const res = await fetch("/getFitnessData", {
+    credentials: "include"
+  });
+
+  if (!res.ok) {
+    alert("Not authenticated");
+    return;
+  }
+
+  const data = await res.json();
+
+  document.getElementById("fitnessOutput").innerText =
+    JSON.stringify(data, null, 2);
+}
+
+async function autoCoach() {
+  addChat("Coach", "Analyzing your fitness data... 🧠");
+
+  const res = await fetch("/chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      message: "Analyze my fitness data and give me today's advice"
+    })
+  });
+
+  const data = await res.json();
+  addChat("Coach", data.reply);
+}
+
+async function sendMessage() {
+  const msg = document.getElementById("userInput").value;
+  if (!msg) return;
+
+  addChat("You", msg);
+  document.getElementById("userInput").value = "";
+
+  const res = await fetch("/chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message: msg })
+  });
+
+  const data = await res.json();
+  addChat("Coach", data.reply);
+}
+
+function addChat(sender, text) {
+  const box = document.getElementById("chatBox");
+  box.innerHTML += `<b>${sender}:</b> ${text}<br><br>`;
+  box.scrollTop = box.scrollHeight;
+}
+</script>
+
+</body>
+</html>

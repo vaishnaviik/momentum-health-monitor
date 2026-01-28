@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>AI Fitness Dashboard</title>
+  <style>
+    body { font-family: Arial; background:#f2f6ff; padding:20px; }
+    .card { background:#fff; padding:15px; border-radius:8px; margin-bottom:15px; }
+    table { width:100%; border-collapse:collapse; }
+    th,td { border:1px solid #ccc; padding:8px; text-align:center; }
+    th { background:#4a6cff; color:white; }
+    .nodata { color:red; font-style:italic; }
+    #chatBox { height:250px; border:1px solid #ccc; padding:10px; overflow-y:auto; }
+    input { width:75%; padding:10px; }
+    button { padding:10px 15px; background:#4a6cff; color:white; border:none; cursor:pointer; }
+  </style>
+</head>
+<body>
+
+<h2>🏃 AI Fitness Coach Dashboard</h2>
+
+<div class="card" id="profile"></div>
+
+<div class="card">
+  <h3>📏 Body Info</h3>
+  <div id="bodyInfo"></div>
+</div>
+
+<div class="card">
+  <h3>📊 Last 7 Days Data</h3>
+  <div id="fitnessTable"></div>
+</div>
+
+<div class="card">
+  <h3>🤖 AI Coach</h3>
+  <div id="chatBox"></div>
+  <input id="userInput" placeholder="Ask coach..." />
+  <button onclick="sendMessage()">Send</button>
+</div>
+
+<script>
+window.onload = async ()=>{
+  await loadProfile();
+  await loadFitness();
+  await autoCoach();
+};
+
+function show(val, unit=""){
+  if(!val || val===0) return "<span class='nodata'>Data not collected</span>";
+  return val + unit;
+}
+
+async function loadProfile(){
+  const res = await fetch("/getProfile");
+  const data = await res.json();
+
+  document.getElementById("profile").innerHTML =
+    `<b>Name:</b> ${data.name} |
+     <b>Age:</b> ${data.age} |
+     <b>Gender:</b> ${data.gender || "Not available"}`;
+}
+
+async function loadFitness(){
+  const res = await fetch("/getFitnessData",{credentials:"include"});
+  const data = await res.json();
+
+  const last = data[data.length-1];
+
+  const heightFormatted = last.heightMeters && last.heightMeters !== 0
+    ? last.heightMeters.toFixed(2)
+    : 0;
+
+  document.getElementById("bodyInfo").innerHTML =
+    `<b>Weight:</b> ${show(last.weightKg," kg")} <br>
+     <b>Height:</b> ${show(heightFormatted," m")}`;
+
+  let html = `<table>
+  <tr>
+    <th>Date</th>
+    <th>Steps</th>
+    <th>Calories</th>
+    <th>Heart Rate</th>
+    <th>Sleep</th>
+  </tr>`;
+
+  data.forEach(d=>{
+    html+=`<tr>
+      <td>${d.date}</td>
+      <td>${show(d.steps)}</td>
+      <td>${show(d.calories)}</td>
+      <td>${show(d.avgHeartRate," bpm")}</td>
+      <td>${show(d.sleepSegments)}</td>
+    </tr>`;
+  });
+
+  html += "</table>";
+  document.getElementById("fitnessTable").innerHTML = html;
+}
+
+async function autoCoach(){
+  addChat("Coach","Analyzing your 7 day data...");
+  const res = await fetch("/chat",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({message:"Give me advice based on my last 7 days data"})
+  });
+  const data = await res.json();
+  addChat("Coach",data.reply);
+}
+
+async function sendMessage(){
+  const msg=document.getElementById("userInput").value;
+  if(!msg) return;
+
+  addChat("You",msg);
+  document.getElementById("userInput").value="";
+
+  const res=await fetch("/chat",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({message:msg})
+  });
+
+  const data=await res.json();
+  addChat("Coach",data.reply);
+}
+
+function addChat(sender,text){
+  const box=document.getElementById("chatBox");
+  box.innerHTML+=`<b>${sender}:</b> ${text}<br><br>`;
+  box.scrollTop=box.scrollHeight;
+}
+</script>
+
+</body>
+</html>

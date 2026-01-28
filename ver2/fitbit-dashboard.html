@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Dashboard</title>
+</head>
+<body>
+  <h1>Your Google Fit Data</h1>
+  <button onclick="loadSteps()">Get My Steps</button>
+
+  <pre id="output"></pre>
+
+  <script>
+    async function loadSteps() {
+      const res = await fetch("http://localhost:3000/getSteps");
+      const data = await res.json();
+      document.getElementById("output").textContent =
+        JSON.stringify(data, null, 2);
+    }
+  </script>
+</body>
+</html>

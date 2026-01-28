@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Momentum Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+body{
+  margin:0;
+  font-family:Arial, Helvetica, sans-serif;
+  color:white;
+
+  background: url("imagep1.jpeg") no-repeat center center fixed;
+  background-size: cover;
+
+  min-height:100vh;
+}
+
+h1{text-align:center;color:#ff4d6d;}
+
+.card{
+  background:#000;
+  border-radius:16px;
+  padding:20px;
+  margin:20px auto;
+  width:85%;
+  box-shadow:0 0 20px rgba(255,77,109,0.2);
+}
+
+.section-title{
+  color:#ff4d6d;
+  margin-bottom:10px;
+}
+
+/* PROFILE + BODY BOXES */
+.profile-boxes, .body-boxes{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+  gap:15px;
+}
+
+.info-box{
+  background:#6a6869;
+  padding:15px;
+  border-radius:14px;
+  text-align:center;
+  color:white;
+  font-weight:bold;
+}
+
+/* GRAPH GRID */
+.graphs{
+  display:grid;
+  grid-template-columns: repeat(2, minmax(400px,1fr));
+  gap:20px;
+  overflow-x:auto;
+}
+
+.graph-box{
+  background:#111;
+  border-radius:16px;
+  padding:15px;
+  min-width:400px;
+}
+
+/* DATE BUTTONS */
+.date-buttons{
+  display:flex;
+  gap:10px;
+  margin-top:20px;
+  position:relative;
+}
+
+.date-btn{
+  padding:10px 15px;
+  border-radius:12px;
+  background:#222;
+  color:white;
+  cursor:pointer;
+  border:1px solid #ff4d6d;
+  transition:0.3s;
+  position:relative;
+}
+
+.date-btn:hover{
+  background:#ff4d6d;
+}
+
+/* TOOLTIP */
+.tooltip{
+  position:absolute;
+  bottom:120%;
+  left:50%;
+  transform:translateX(-50%);
+  background:#f63562;
+  padding:10px 12px;
+  border-radius:10px;
+  color:white;
+  font-size:13px;
+  display:none;
+  white-space:nowrap;
+  box-shadow:0 0 15px rgba(246,53,98,0.8);
+  z-index:9999;
+  animation:fadeUp 0.2s ease;
+}
+
+@keyframes fadeUp{
+  from{opacity:0;transform:translate(-50%,10px);}
+  to{opacity:1;transform:translate(-50%,0);}
+}
+
+/* FLOATING AI BUTTON */
+#aiButton{
+  position:fixed;
+  bottom:20px;
+  right:20px;
+  background:#ff4d6d;
+  color:white;
+  padding:15px 20px;
+  border-radius:50px;
+  cursor:pointer;
+  box-shadow:0 0 20px rgba(255,77,109,0.6);
+  z-index:1000;
+}
+
+/* AI POPUP */
+#aiPopup{
+  position:fixed;
+  bottom:90px;
+  right:20px;
+  width:380px;
+  background:#111;
+  border-radius:16px;
+  padding:15px;
+  box-shadow:0 0 20px rgba(255,77,109,0.6);
+  opacity:0;
+  transform:translateY(20px) scale(0.9);
+  transition:all 0.35s ease;
+  pointer-events:none;
+}
+
+#aiPopup.show{
+  opacity:1;
+  transform:translateY(0) scale(1);
+  pointer-events:auto;
+}
+
+#chatBox{
+  height:200px;
+  overflow-y:auto;
+  border:1px solid #444;
+  padding:10px;
+  background:#000;
+  margin-bottom:10px;
+}
+
+input{
+  width:70%;
+  padding:8px;
+}
+
+button{
+  padding:8px;
+  background:#ff4d6d;
+  color:white;
+  border:none;
+  cursor:pointer;
+}
+</style>
+</head>
+
+<body>
+
+<h1>MOMENTUM - built on movement, designed for health.</h1>
+
+<div class="card">
+<h3 class="section-title">Profile</h3>
+<div class="profile-boxes" id="profileBoxes"></div>
+</div>
+
+<div class="card">
+<h3 class="section-title">Body Info</h3>
+<div class="body-boxes" id="bodyBoxes"></div>
+</div>
+
+<div class="card">
+<h3 class="section-title">Graphs</h3>
+
+<div class="graphs">
+  <div class="graph-box"><canvas id="stepsChart"></canvas></div>
+  <div class="graph-box"><canvas id="caloriesChart"></canvas></div>
+  <div class="graph-box"><canvas id="heartChart"></canvas></div>
+  <div class="graph-box"><canvas id="sleepChart"></canvas></div>
+</div>
+
+<div class="date-buttons" id="dateButtons"></div>
+</div>
+
+<div id="aiButton" onclick="toggleAI()">🤖 TOM</div>
+
+<div id="aiPopup">
+  <div id="chatBox"></div>
+  <input id="userInput" placeholder="Ask coach...">
+  <button onclick="sendMessage()">Send</button>
+</div>
+
+<script>
+let fitnessData=[];
+
+window.onload=async()=>{
+  await loadProfile();
+  await loadFitness();
+  await autoCoach();
+};
+
+function toggleAI(){
+  document.getElementById("aiPopup").classList.toggle("show");
+}
+
+function show(val,unit=""){
+  if(!val||val===0) return "No data";
+  return val+unit;
+}
+
+async function loadProfile(){
+  const res=await fetch("/getProfile");
+  const data=await res.json();
+
+  document.getElementById("profileBoxes").innerHTML=`
+    <div class="info-box">Name: ${data.name}</div>
+    <div class="info-box">Age: ${data.age}</div>
+    <div class="info-box">Gender: ${data.gender}</div>
+  `;
+}
+
+async function loadFitness(){
+  const res=await fetch("/getFitnessData",{credentials:"include"});
+  fitnessData=await res.json();
+
+  const last=fitnessData[fitnessData.length-1];
+  document.getElementById("bodyBoxes").innerHTML=`
+    <div class="info-box">Weight: ${show(last.weightKg," kg")}</div>
+    <div class="info-box">Height: ${last.heightMeters?last.heightMeters.toFixed(2):0} m</div>
+  `;
+
+  buildCharts();
+  buildDateButtons();
+}
+
+function buildCharts(){
+  const labels=fitnessData.map(d=>d.date);
+
+  new Chart(stepsChart,{type:'line',data:{labels,datasets:[{label:"Steps",data:fitnessData.map(d=>d.steps),borderColor:"#00d4ff",tension:0.4}]}});
+  new Chart(caloriesChart,{type:'line',data:{labels,datasets:[{label:"Calories",data:fitnessData.map(d=>d.calories),borderColor:"#ffb703",tension:0.4}]}});
+  new Chart(heartChart,{type:'line',data:{labels,datasets:[{label:"Heart Rate",data:fitnessData.map(d=>d.avgHeartRate),borderColor:"#ff4d6d",tension:0.4}]}});
+  new Chart(sleepChart,{type:'line',data:{labels,datasets:[{label:"Sleep",data:fitnessData.map(d=>d.sleepSegments),borderColor:"#9b5de5",tension:0.4}]}});
+}
+
+function buildDateButtons(){
+  const container=document.getElementById("dateButtons");
+
+  fitnessData.forEach(d=>{
+    const btn=document.createElement("div");
+    btn.className="date-btn";
+    btn.innerText=d.date;
+
+    const tooltip=document.createElement("div");
+    tooltip.className="tooltip";
+
+    tooltip.innerHTML=`
+      Heart: ${show(d.avgHeartRate," bpm")}<br>
+      Steps: ${show(d.steps)}<br>
+      Calories: ${show(d.calories)}<br>
+      Sleep: ${show(d.sleepSegments)}
+    `;
+
+    btn.appendChild(tooltip);
+
+    btn.onmouseenter=()=> tooltip.style.display="block";
+    btn.onmouseleave=()=> tooltip.style.display="none";
+
+    container.appendChild(btn);
+  });
+}
+
+async function autoCoach(){
+  const res=await fetch("/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({message:"Give me advice"})});
+  const data=await res.json();
+  addChat("Coach",data.reply);
+}
+
+async function sendMessage(){
+  const msg=document.getElementById("userInput").value;
+  if(!msg)return;
+  addChat("You",msg);
+  document.getElementById("userInput").value="";
+  const res=await fetch("/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({message:msg})});
+  const data=await res.json();
+  addChat("Coach",data.reply);
+}
+
+function addChat(sender,text){
+  const box=document.getElementById("chatBox");
+  box.innerHTML+=`<b>${sender}:</b> ${text}<br><br>`;
+  box.scrollTop=box.scrollHeight;
+}
+</script>
+
+</body>
+</html>

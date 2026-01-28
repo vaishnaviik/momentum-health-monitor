@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Connect to Google Fit</title>
+  <link rel="stylesheet" href="fitbit-login.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="login-card">
+      <div class="logo-section">
+        <h1>Connect to Google Fit</h1>
+        <p class="subtitle">Sign in with Google to access your fitness data securely</p>
+      </div>
+
+      <!-- GOOGLE OAUTH BUTTON -->
+      <a href="https://accounts.google.com/o/oauth2/v2/auth?client_id=743102146941-7grmbcpqireu0ndoqejfm7j25v37bq3v.apps.googleusercontent.com&redirect_uri=http://localhost:3000/auth/google/callback&response_type=code&scope=https://www.googleapis.com/auth/fitness.activity.read https://www.googleapis.com/auth/fitness.heart_rate.read https://www.googleapis.com/auth/fitness.sleep.read&access_type=offline&prompt=consent">
+        Connect with Google Fit
+      </a>
+
+      <div class="api-info" style="margin-top:20px;">
+        <span>Secure OAuth 2.0 Authentication</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

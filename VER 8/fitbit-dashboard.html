@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Momentum Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+body{
+  margin:0;
+  font-family:Arial, Helvetica, sans-serif;
+  color:white;
+  background: url("imagep1.jpeg") no-repeat center center fixed;
+  background-size: cover;
+  min-height:100vh;
+}
+
+.chat-input-area{
+  display:flex;
+  gap:12px;
+  align-items:center;
+}
+
+#userInput{
+  flex:1;
+  padding:14px 18px;
+  border-radius:30px;
+  border:2px solid #ff4d6d;
+  background:#000;
+  color:white;
+  outline:none;
+  font-size:15px;
+  transition:0.3s;
+}
+
+#userInput::placeholder{ color:#bbb; }
+
+#userInput:focus{
+  box-shadow:0 0 12px rgba(255,77,109,0.6);
+}
+
+.send-btn{
+  padding:14px 26px;
+  border-radius:30px;
+  background:#ff4d6d;
+  color:white;
+  border:none;
+  cursor:pointer;
+  font-weight:600;
+  font-size:14px;
+  transition:0.3s ease;
+  box-shadow:0 0 10px rgba(255,77,109,0.5);
+}
+
+.send-btn:hover{
+  background:#ff2f5c;
+  box-shadow:0 0 15px rgba(255,77,109,0.8);
+  transform:translateY(-1px);
+}
+
+h1{text-align:center;color:#ff4d6d;}
+
+.card{
+  background:#000;
+  border-radius:16px;
+  padding:20px;
+  margin:20px auto;
+  width:85%;
+  box-shadow:0 0 20px rgba(255,77,109,0.2);
+}
+
+.section-title{color:#ff4d6d;margin-bottom:10px;}
+
+.profile-boxes,.body-boxes{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+  gap:15px;
+}
+
+.info-box{
+  background:#6a6869;
+  padding:15px;
+  border-radius:14px;
+  text-align:center;
+  font-weight:bold;
+}
+
+.graphs{
+  display:grid;
+  grid-template-columns: repeat(2, minmax(400px,1fr));
+  gap:20px;
+  overflow-x:auto;
+}
+
+.graph-box{
+  background:#111;
+  border-radius:16px;
+  padding:15px;
+  min-width:400px;
+}
+
+.date-buttons{
+  display:flex;
+  gap:10px;
+  margin-top:20px;
+}
+
+.date-btn{
+  padding:10px 15px;
+  border-radius:12px;
+  background:#222;
+  cursor:pointer;
+  border:1px solid #ff4d6d;
+  position:relative;
+}
+
+.date-btn:hover{background:#ff4d6d;}
+
+.tooltip{
+  position:absolute;
+  bottom:120%;
+  left:50%;
+  transform:translateX(-50%);
+  background:#f63562;
+  padding:10px 12px;
+  border-radius:10px;
+  display:none;
+  font-size:13px;
+  box-shadow:0 0 15px rgba(246,53,98,0.8);
+}
+
+#aiButton{
+  position:fixed;
+  bottom:20px;
+  right:20px;
+  background:#ff4d6d;
+  padding:15px 20px;
+  border-radius:50px;
+  cursor:pointer;
+}
+
+#aiPopup{
+  position:fixed;
+  bottom:90px;
+  right:20px;
+  width:380px;
+  background:#111;
+  border-radius:16px;
+  padding:15px;
+  box-shadow:0 0 20px rgba(255,77,109,0.6);
+  opacity:0;
+  transform:translateY(20px) scale(0.9);
+  transition:0.35s;
+  pointer-events:none;
+}
+
+#aiPopup.show{
+  opacity:1;
+  transform:translateY(0) scale(1);
+  pointer-events:auto;
+}
+
+#chatBox{
+  height:200px;
+  overflow-y:auto;
+  border:1px solid #444;
+  padding:10px;
+  background:#000;
+  margin-bottom:10px;
+}
+
+/* CHAT INPUT AREA */
+.chat-input-area{
+  display:flex;
+  gap:10px;
+}
+
+/* INPUT BOX */
+#userInput{
+  flex:1;
+  padding:12px 14px;
+  border-radius:25px;
+  border:1px solid #ff4d6d;
+  background:#000;
+  color:white;
+  outline:none;
+  font-size:14px;
+  transition:0.3s;
+}
+
+#userInput::placeholder{
+  color:#aaa;
+}
+
+#userInput:focus{
+  border-color:#ff4d6d;
+  box-shadow:0 0 10px rgba(255,77,109,0.6);
+}
+
+/* SEND BUTTON */
+.send-btn{
+  padding:12px 18px;
+  border-radius:25px;
+  background:linear-gradient(135deg,#ff4d6d,#ff8fa3);
+  color:white;
+  border:none;
+  cursor:pointer;
+  font-weight:bold;
+  transition:0.3s;
+  box-shadow:0 0 10px rgba(255,77,109,0.6);
+}
+
+.send-btn:hover{
+  transform:translateY(-2px);
+  box-shadow:0 0 18px rgba(255,77,109,0.9);
+}
+
+.send-btn:active{
+  transform:scale(0.95);
+}
+</style>
+</head>
+
+<body>
+
+<h1>MOMENTUM - built on movement, designed for health.</h1>
+
+<div class="card">
+<h3 class="section-title">Profile</h3>
+<div class="profile-boxes" id="profileBoxes"></div>
+</div>
+
+<div class="card">
+<h3 class="section-title">Body Info</h3>
+<div class="body-boxes" id="bodyBoxes"></div>
+</div>
+
+<div class="card">
+<h3 class="section-title">Graphs</h3>
+
+<div class="graphs">
+  <div class="graph-box"><canvas id="stepsChart"></canvas></div>
+  <div class="graph-box"><canvas id="caloriesChart"></canvas></div>
+  <div class="graph-box"><canvas id="heartChart"></canvas></div>
+  <div class="graph-box"><canvas id="sleepChart"></canvas></div>
+</div>
+
+<div class="date-buttons" id="dateButtons"></div>
+</div>
+
+<div id="aiButton" onclick="toggleAI()">🤖 TOM</div>
+
+<div id="aiPopup">
+  <div id="chatBox"></div>
+
+  <div class="chat-input-area">
+    <input id="userInput" placeholder="Ask coach..." onkeydown="handleEnter(event)">
+    <button class="send-btn" onclick="sendMessage()">Send</button>
+  </div>
+</div>
+
+<script>
+document.getElementById("userInput").addEventListener("keydown", function(event) {
+  if (event.key === "Enter") {
+    event.preventDefault(); // stop line break
+    sendMessage();
+  }
+});
+let fitnessData=[];
+
+window.onload=async()=>{
+  await loadProfile();
+  await loadFitness();
+  await autoCoach();
+};
+
+function toggleAI(){
+  document.getElementById("aiPopup").classList.toggle("show");
+}
+
+function show(val,unit=""){
+  if(!val||val===0) return "No data";
+  return val+unit;
+}
+
+/* PROFILE */
+async function loadProfile(){
+  const res=await fetch("/getProfile");
+  const data=await res.json();
+  document.getElementById("profileBoxes").innerHTML=`
+    <div class="info-box">Name: ${data.name}</div>
+    <div class="info-box">Age: ${data.age}</div>
+    <div class="info-box">Gender: ${data.gender}</div>
+  `;
+}
+
+/* FITNESS */
+async function loadFitness(){
+  const res=await fetch("/getFitnessData",{credentials:"include"});
+  fitnessData=await res.json();
+
+  const last=fitnessData[fitnessData.length-1];
+  document.getElementById("bodyBoxes").innerHTML=`
+    <div class="info-box">Weight: ${show(last.weightKg," kg")}</div>
+    <div class="info-box">Height: ${last.heightMeters?last.heightMeters.toFixed(2):0} m</div>
+  `;
+
+  buildCharts();
+  buildDateButtons();
+}
+
+/* CHARTS */
+function buildCharts(){
+  const labels=fitnessData.map(d=>d.date);
+
+  new Chart(stepsChart,{type:'line',data:{labels,datasets:[{label:"Steps",data:fitnessData.map(d=>d.steps),borderColor:"#00d4ff",tension:0.4}]}});
+  new Chart(caloriesChart,{type:'line',data:{labels,datasets:[{label:"Calories",data:fitnessData.map(d=>d.calories),borderColor:"#ffb703",tension:0.4}]}});
+  new Chart(heartChart,{type:'line',data:{labels,datasets:[{label:"Heart Rate",data:fitnessData.map(d=>d.avgHeartRate),borderColor:"#ff4d6d",tension:0.4}]}});
+  new Chart(sleepChart,{type:'line',data:{labels,datasets:[{label:"Sleep",data:fitnessData.map(d=>d.sleepSegments),borderColor:"#9b5de5",tension:0.4}]}});
+}
+
+/* DATE TOOLTIP */
+function buildDateButtons(){
+  const container=document.getElementById("dateButtons");
+
+  fitnessData.forEach(d=>{
+    const btn=document.createElement("div");
+    btn.className="date-btn";
+    btn.innerText=d.date;
+
+    const tooltip=document.createElement("div");
+    tooltip.className="tooltip";
+    tooltip.innerHTML=`
+      ❤️ ${show(d.avgHeartRate," bpm")}<br>
+      👟 ${show(d.steps)}<br>
+      🔥 ${show(d.calories)}<br>
+      😴 ${show(d.sleepSegments)}
+    `;
+
+    btn.appendChild(tooltip);
+    btn.onmouseenter=()=> tooltip.style.display="block";
+    btn.onmouseleave=()=> tooltip.style.display="none";
+
+    container.appendChild(btn);
+  });
+}
+
+/* AI AUTO MESSAGE */
+async function autoCoach(){
+  addChat("TOM","Thinking...");
+  const res=await fetch("/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({message:"Give me advice"})});
+  const data=await res.json();
+  typeWriter("TOM",data.reply);
+}
+
+/* SEND MESSAGE */
+async function sendMessage(){
+  const msg=document.getElementById("userInput").value;
+  if(!msg)return;
+
+  addChat("You",msg);
+  document.getElementById("userInput").value="";
+
+  addChat("TOM","Thinking...");
+
+  const res=await fetch("/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({message:msg})});
+  const data=await res.json();
+
+  document.getElementById("chatBox").lastChild.remove();
+  typeWriter("TOM",data.reply);
+}
+
+/* CHAT FUNCTIONS */
+function addChat(sender,text){
+  const box=document.getElementById("chatBox");
+  const div=document.createElement("div");
+  div.innerHTML=`<b>${sender}:</b> ${text}`;
+  box.appendChild(div);
+  box.scrollTop=box.scrollHeight;
+}
+
+/* TYPE WRITER EFFECT */
+function typeWriter(sender,text){
+  const box=document.getElementById("chatBox");
+  const div=document.createElement("div");
+  div.innerHTML=`<b>${sender}:</b> `;
+  box.appendChild(div);
+
+  let i=0;
+  const speed=25;
+
+  function typing(){
+    if(i<text.length){
+      div.innerHTML+=text.charAt(i);
+      i++;
+      box.scrollTop=box.scrollHeight;
+      setTimeout(typing,speed);
+    }
+  }
+  typing();
+}
+</script>
+
+</body>
+</html>

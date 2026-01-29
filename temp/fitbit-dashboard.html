@@ -1,0 +1,1179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Momentum Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+body{
+  margin:0;
+  font-family:Arial, Helvetica, sans-serif;
+  color:white;
+  background: url("imagep1.jpeg") no-repeat center center fixed;
+  background-size: cover;
+  min-height:100vh;
+}
+
+/* Notification Bell */
+.notification-bell {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  width: 50px;
+  height: 50px;
+  background: rgba(255, 77, 109, 0.2);
+  border: 2px solid #ff4d6d;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  z-index: 1000;
+}
+
+.notification-bell:hover {
+  background: rgba(255, 77, 109, 0.4);
+  transform: scale(1.1);
+}
+
+.notification-bell svg {
+  width: 24px;
+  height: 24px;
+  fill: #ff4d6d;
+}
+
+.notification-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: #ff4d6d;
+  color: white;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: bold;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #000;
+}
+
+/* Notification Panel */
+.notification-panel {
+  position: fixed;
+  top: 80px;
+  right: 20px;
+  width: 350px;
+  max-height: 500px;
+  background: rgba(17, 17, 17, 0.98);
+  border: 1px solid rgba(255, 77, 109, 0.3);
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(20px);
+  opacity: 0;
+  transform: translateY(-20px);
+  pointer-events: none;
+  transition: all 0.3s ease;
+  z-index: 999;
+  overflow: hidden;
+}
+
+.notification-panel.active {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.notification-header {
+  padding: 15px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.notification-header h3 {
+  color: #ff4d6d;
+  font-size: 16px;
+  margin: 0;
+}
+
+.clear-all-btn {
+  background: rgba(255, 77, 109, 0.2);
+  border: 1px solid #ff4d6d;
+  color: #ff4d6d;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.clear-all-btn:hover {
+  background: rgba(255, 77, 109, 0.4);
+}
+
+.notification-list {
+  max-height: 400px;
+  overflow-y: auto;
+  padding: 10px;
+}
+
+.notification-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.notification-list::-webkit-scrollbar-thumb {
+  background: #ff4d6d;
+  border-radius: 3px;
+}
+
+.notification-item {
+  background: rgba(0, 0, 0, 0.5);
+  border-left: 3px solid #ff4d6d;
+  padding: 12px;
+  margin-bottom: 8px;
+  border-radius: 8px;
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.notification-item-title {
+  color: white;
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.notification-item-body {
+  color: #bbb;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.notification-item-time {
+  color: #888;
+  font-size: 11px;
+  margin-top: 4px;
+}
+
+.no-notifications {
+  text-align: center;
+  padding: 40px 20px;
+  color: #888;
+}
+
+/* Keyboard Shortcuts */
+.keyboard-shortcuts {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 999;
+}
+
+.shortcut-item {
+  background: rgba(0, 0, 0, 0.8);
+  border: 1px solid rgba(255, 77, 109, 0.3);
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  color: #bbb;
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  max-width: 40px;
+  overflow: hidden;
+}
+
+.shortcut-item:hover {
+  max-width: 300px;
+  background: rgba(255, 77, 109, 0.2);
+  border-color: #ff4d6d;
+  transform: translateX(5px);
+}
+
+.shortcut-key {
+  background: rgba(255, 77, 109, 0.2);
+  border: 1px solid #ff4d6d;
+  color: #ff4d6d;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-weight: bold;
+  font-family: monospace;
+  min-width: 24px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.shortcut-label {
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.shortcut-item:hover .shortcut-label {
+  opacity: 1;
+}
+
+.shortcut-detail {
+  display: none;
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  margin-left: 10px;
+  background: rgba(17, 17, 17, 0.98);
+  border: 1px solid #ff4d6d;
+  padding: 12px 16px;
+  border-radius: 12px;
+  min-width: 250px;
+  box-shadow: 0 8px 32px rgba(255, 77, 109, 0.4);
+  z-index: 1000;
+}
+
+.shortcut-item:hover .shortcut-detail {
+  display: block;
+  animation: slideInLeft 0.3s ease;
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateY(-50%) translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(-50%) translateX(0);
+  }
+}
+
+.shortcut-detail-title {
+  color: #ff4d6d;
+  font-weight: bold;
+  font-size: 14px;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.shortcut-detail-description {
+  color: #bbb;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.shortcut-detail-arrow {
+  position: absolute;
+  left: -6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0;
+  height: 0;
+  border-top: 6px solid transparent;
+  border-bottom: 6px solid transparent;
+  border-right: 6px solid #ff4d6d;
+}
+
+.chat-input-area{
+  display:flex;
+  gap:12px;
+  align-items:center;
+}
+
+#userInput{
+  flex:1;
+  padding:14px 18px;
+  border-radius:30px;
+  border:2px solid #ff4d6d;
+  background:#000;
+  color:white;
+  outline:none;
+  font-size:15px;
+  transition:0.3s;
+}
+
+#userInput::placeholder{ color:#bbb; }
+
+#userInput:focus{
+  box-shadow:0 0 12px rgba(255,77,109,0.6);
+}
+
+.send-btn{
+  padding:14px 26px;
+  border-radius:30px;
+  background:#ff4d6d;
+  color:white;
+  border:none;
+  cursor:pointer;
+  font-weight:600;
+  font-size:14px;
+  transition:0.3s ease;
+  box-shadow:0 0 10px rgba(255,77,109,0.5);
+}
+
+.send-btn:hover{
+  background:#ff2f5c;
+  box-shadow:0 0 15px rgba(255,77,109,0.8);
+  transform:translateY(-1px);
+}
+
+h1{text-align:center;color:#ff4d6d;}
+
+.card{
+  background:#000;
+  border-radius:16px;
+  padding:20px;
+  margin:20px auto;
+  width:85%;
+  box-shadow:0 0 20px rgba(255,77,109,0.2);
+}
+
+.section-title{color:#ff4d6d;margin-bottom:10px;}
+
+.profile-boxes,.body-boxes{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+  gap:15px;
+}
+
+.info-box{
+  background:#6a6869;
+  padding:15px;
+  border-radius:14px;
+  text-align:center;
+  font-weight:bold;
+}
+
+.graphs{
+  display:grid;
+  grid-template-columns: repeat(2, minmax(400px,1fr));
+  gap:20px;
+  overflow-x:auto;
+}
+
+.graph-box{
+  background:#111;
+  border-radius:16px;
+  padding:15px;
+  min-width:400px;
+}
+
+.date-buttons{
+  display:flex;
+  gap:10px;
+  margin-top:20px;
+}
+
+.date-btn{
+  padding:10px 15px;
+  border-radius:12px;
+  background:#222;
+  cursor:pointer;
+  border:1px solid #ff4d6d;
+  position:relative;
+}
+
+.date-btn:hover{background:#ff4d6d;}
+
+.tooltip{
+  position:absolute;
+  bottom:120%;
+  left:50%;
+  transform:translateX(-50%);
+  background:black;
+  padding:10px 12px;
+  border-radius:10px;
+  display:none;
+  font-size:13px;
+  box-shadow:0 0 15px rgba(246,53,98,0.8);
+  white-space: nowrap;
+  z-index: 1000;
+}
+
+#aiButton{
+  position:fixed;
+  bottom:20px;
+  right:20px;
+  background:#ff4d6d;
+  padding:15px 20px;
+  border-radius:50px;
+  cursor:pointer;
+  box-shadow: 0 4px 15px rgba(255,77,109,0.6);
+  transition: 0.3s;
+  z-index: 1000;
+}
+
+#aiButton:hover{
+  transform: scale(1.05);
+  box-shadow: 0 6px 20px rgba(255,77,109,0.8);
+}
+
+#aiPopup{
+  position:fixed;
+  bottom:90px;
+  right:20px;
+  width:380px;
+  background:#111;
+  border-radius:16px;
+  padding:15px;
+  box-shadow:0 0 20px rgba(255,77,109,0.6);
+  opacity:0;
+  transform:translateY(20px) scale(0.9);
+  transition:0.35s;
+  pointer-events:none;
+  z-index: 999;
+}
+
+#aiPopup.show{
+  opacity:1;
+  transform:translateY(0) scale(1);
+  pointer-events:auto;
+}
+
+#chatBox{
+  height:200px;
+  overflow-y:auto;
+  border:1px solid #444;
+  padding:10px;
+  background:#000;
+  margin-bottom:10px;
+  border-radius: 8px;
+}
+
+#chatBox::-webkit-scrollbar {
+  width: 6px;
+}
+
+#chatBox::-webkit-scrollbar-thumb {
+  background: #ff4d6d;
+  border-radius: 3px;
+}
+
+.notification-status {
+  position: fixed;
+  top: 20px;
+  right: 90px;
+  padding: 12px 20px;
+  background: #111;
+  border: 1px solid #ff4d6d;
+  border-radius: 12px;
+  display: none;
+  z-index: 9999;
+  font-size: 14px;
+}
+
+.notification-status.show {
+  display: block;
+}
+
+.notification-status.success {
+  border-color: #4ade80;
+  color: #4ade80;
+}
+
+.notification-status.error {
+  border-color: #ff4d6d;
+  color: #ff4d6d;
+}
+
+@keyframes shake {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-15deg); }
+  75% { transform: rotate(15deg); }
+}
+</style>
+</head>
+
+<body>
+
+<!-- Notification Bell -->
+<div class="notification-bell" id="notificationBell" onclick="toggleNotifications()">
+  <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zm-2 1H8v-6c0-2.48 1.51-4.5 4-4.5s4 2.02 4 4.5v6z"/>
+  </svg>
+  <span class="notification-badge" id="notificationBadge">0</span>
+</div>
+
+<!-- Notification Panel -->
+<div class="notification-panel" id="notificationPanel">
+  <div class="notification-header">
+    <h3>🔔 Notifications</h3>
+    <button class="clear-all-btn" onclick="clearAllNotifications()">Clear All</button>
+  </div>
+  <div class="notification-list" id="notificationList">
+    <div class="no-notifications">No notifications yet</div>
+  </div>
+</div>
+
+<!-- Keyboard Shortcuts -->
+<div class="keyboard-shortcuts">
+  <div class="shortcut-item">
+    <span class="shortcut-key">T</span>
+    <span class="shortcut-label">Toggle Tom</span>
+    <div class="shortcut-detail">
+      <div class="shortcut-detail-arrow"></div>
+      <div class="shortcut-detail-title">🤖 Tom - AI Fitness Coach</div>
+      <div class="shortcut-detail-description">
+        Open or close the AI chat panel to get personalized fitness advice, health tips, and answers to your wellness questions. Tom analyzes your activity data to provide tailored recommendations.
+      </div>
+    </div>
+  </div>
+  <div class="shortcut-item">
+    <span class="shortcut-key">N</span>
+    <span class="shortcut-label">Toggle Notifications</span>
+    <div class="shortcut-detail">
+      <div class="shortcut-detail-arrow"></div>
+      <div class="shortcut-detail-title">🔔 Notification Center</div>
+      <div class="shortcut-detail-description">
+        View your notification history including health alerts, system messages, and activity reminders. Keep track of important updates about your fitness journey.
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="notificationStatus" class="notification-status"></div>
+
+<h1>MOMENTUM - built on movement, designed for health.</h1>
+
+<div class="card">
+<h3 class="section-title">Profile</h3>
+<div class="profile-boxes" id="profileBoxes"></div>
+</div>
+
+<div class="card">
+<h3 class="section-title">Body Info</h3>
+<div class="body-boxes" id="bodyBoxes"></div>
+</div>
+
+<div class="card">
+<h3 class="section-title">Graphs</h3>
+
+<div class="graphs">
+  <div class="graph-box"><canvas id="stepsChart"></canvas></div>
+  <div class="graph-box"><canvas id="caloriesChart"></canvas></div>
+  <div class="graph-box"><canvas id="heartChart"></canvas></div>
+  <div class="graph-box"><canvas id="sleepChart"></canvas></div>
+</div>
+
+<div class="date-buttons" id="dateButtons"></div>
+</div>
+
+<div id="aiButton" onclick="toggleTom()">🤖 TOM</div>
+  
+<div id="aiPopup">
+  <div id="chatBox"></div>
+
+  <div class="chat-input-area">
+    <input id="userInput" placeholder="Ask coach..." onkeydown="handleEnter(event)">
+    <button class="send-btn" onclick="sendMessage()">Send</button>
+  </div>
+</div>
+
+<script>
+let fitnessData = [];
+let swRegistration = null;
+
+/* =========================
+   TOGGLE STATE MANAGEMENT
+========================= */
+let notificationPanelOpen = false;
+let tomPanelOpen = false;
+
+/* =========================
+   NOTIFICATION MANAGEMENT
+========================= */
+let notifications = [];
+
+// Load notifications from localStorage
+function loadNotifications() {
+  const stored = localStorage.getItem('momentum_notifications');
+  if (stored) {
+    notifications = JSON.parse(stored);
+    updateNotificationUI();
+  }
+}
+
+// Save notifications to localStorage
+function saveNotifications() {
+  localStorage.setItem('momentum_notifications', JSON.stringify(notifications));
+}
+
+// Update notification UI
+function updateNotificationUI() {
+  const badge = document.getElementById('notificationBadge');
+  const list = document.getElementById('notificationList');
+  
+  badge.textContent = notifications.length;
+  badge.style.display = notifications.length > 0 ? 'flex' : 'none';
+  
+  if (notifications.length === 0) {
+    list.innerHTML = '<div class="no-notifications">No notifications yet</div>';
+  } else {
+    list.innerHTML = notifications.map((notif, index) => `
+      <div class="notification-item">
+        <div class="notification-item-title">${notif.title}</div>
+        <div class="notification-item-body">${notif.body}</div>
+        <div class="notification-item-time">${notif.time}</div>
+      </div>
+    `).join('');
+  }
+}
+
+// Toggle notifications panel
+function toggleNotifications() {
+  const panel = document.getElementById('notificationPanel');
+  
+  // If Tom is open, close it first
+  if (tomPanelOpen) {
+    toggleTom();
+  }
+  
+  notificationPanelOpen = !notificationPanelOpen;
+  panel.classList.toggle('active', notificationPanelOpen);
+}
+
+// Clear all notifications
+function clearAllNotifications() {
+  if (confirm('Clear all notifications?')) {
+    notifications = [];
+    saveNotifications();
+    updateNotificationUI();
+    console.log('✅ All notifications cleared');
+  }
+}
+
+// Add notification (called when new notification arrives)
+function addNotification(title, body) {
+  const notification = {
+    title: title,
+    body: body,
+    time: new Date().toLocaleString()
+  };
+  
+  notifications.unshift(notification);
+  
+  // Keep only last 50 notifications
+  if (notifications.length > 50) {
+    notifications = notifications.slice(0, 50);
+  }
+  
+  saveNotifications();
+  updateNotificationUI();
+  
+  console.log('📝 Notification added:', notification);
+  
+  // Shake animation for bell
+  const bell = document.getElementById('notificationBell');
+  if (bell) {
+    bell.style.animation = 'shake 0.5s ease';
+    setTimeout(() => {
+      bell.style.animation = '';
+    }, 500);
+  }
+}
+
+/* =========================
+   INTERCEPT SERVICE WORKER NOTIFICATIONS
+========================= */
+// Listen for service worker messages
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('message', (event) => {
+    console.log('📨 Service worker message:', event.data);
+    
+    if (event.data && event.data.type === 'NOTIFICATION_RECEIVED') {
+      // Add to notification panel
+      addNotification(
+        event.data.title || 'Notification',
+        event.data.body || ''
+      );
+    }
+  });
+}
+
+/* =========================
+   TOGGLE TOM
+========================= */
+function toggleTom() {
+  const tomPopup = document.getElementById('aiPopup');
+  
+  // If notifications are open, close them first
+  if (notificationPanelOpen) {
+    toggleNotifications();
+  }
+  
+  tomPanelOpen = !tomPanelOpen;
+  tomPopup.classList.toggle('show', tomPanelOpen);
+}
+
+// Legacy function for backward compatibility
+function toggleAI() {
+  toggleTom();
+}
+
+/* =========================
+   CLOSE ALL PANELS
+========================= */
+function closeAllPanels() {
+  if (notificationPanelOpen) {
+    toggleNotifications();
+  }
+  if (tomPanelOpen) {
+    toggleTom();
+  }
+}
+
+/* =========================
+   KEYBOARD SHORTCUTS
+========================= */
+document.addEventListener('keydown', (e) => {
+  // Ignore if typing in input field
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+    return;
+  }
+  
+  switch(e.key.toLowerCase()) {
+    case 'n':
+      e.preventDefault();
+      toggleNotifications();
+      break;
+    case 't':
+      e.preventDefault();
+      toggleTom();
+      break;
+    case 'escape':
+      e.preventDefault();
+      closeAllPanels();
+      break;
+  }
+});
+
+/* =========================
+   UTILITY: BASE64 CONVERSION
+========================= */
+function urlBase64ToUint8Array(base64String) {
+  const padding = "=".repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding)
+    .replace(/-/g, "+")
+    .replace(/_/g, "/");
+
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
+/* =========================
+   NOTIFICATION STATUS
+========================= */
+function showNotificationStatus(message, isSuccess) {
+  const status = document.getElementById("notificationStatus");
+  status.textContent = message;
+  status.className = `notification-status show ${isSuccess ? 'success' : 'error'}`;
+  
+  setTimeout(() => {
+    status.classList.remove('show');
+  }, 3000);
+}
+
+/* =========================
+   ENABLE PUSH NOTIFICATIONS
+========================= */
+async function enableNotifications() {
+  console.log("🔔 Enabling notifications...");
+
+  try {
+    if (!("serviceWorker" in navigator)) {
+      showNotificationStatus("Service workers not supported", false);
+      console.error("❌ Service workers not supported");
+      return;
+    }
+
+    if (!("Notification" in window)) {
+      showNotificationStatus("Notifications not supported", false);
+      console.error("❌ Notifications not supported");
+      return;
+    }
+
+    if (!("PushManager" in window)) {
+      showNotificationStatus("Push messaging not supported", false);
+      console.error("❌ Push messaging not supported");
+      return;
+    }
+
+    console.log("📝 Registering service worker...");
+    swRegistration = await navigator.serviceWorker.register("/sw.js");
+    console.log("✅ Service worker registered");
+
+    await navigator.serviceWorker.ready;
+    console.log("✅ Service worker ready");
+
+    console.log("🔔 Requesting notification permission...");
+    const permission = await Notification.requestPermission();
+    console.log(`📋 Permission: ${permission}`);
+
+    if (permission !== "granted") {
+      showNotificationStatus("Notification permission denied", false);
+      console.warn("⚠️ Notification permission denied");
+      return;
+    }
+
+    showNotificationStatus("Permission granted", true);
+
+    console.log("🔍 Checking for existing subscription...");
+    let existingSubscription = await swRegistration.pushManager.getSubscription();
+    
+    if (existingSubscription) {
+      console.log("🗑️ Found old subscription, unsubscribing...");
+      await existingSubscription.unsubscribe();
+      console.log("✅ Old subscription removed");
+    }
+
+    console.log("📱 Creating new subscription...");
+    const subscription = await swRegistration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(
+        "BCY7ghlaULhsbKwbGjKZsgBRuQz5eVaQa-dIx8MLhKiHpWanXcajPCjhUUKwq7rTrYPRgV2-WWUswsLh5QU1WFQ"
+      )
+    });
+
+    console.log("📤 Sending subscription to server...");
+    const response = await fetch("/subscribe", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(subscription)
+    });
+
+    if (response.ok) {
+      showNotificationStatus("✅ Notifications enabled!", true);
+      console.log("✅ Push notification setup complete");
+      
+      // Add to notification history
+      addNotification("Momentum", "Notifications enabled successfully! 🎉");
+      
+      // Show browser notification
+      if (swRegistration.showNotification) {
+        swRegistration.showNotification("Momentum", {
+          body: "Notifications enabled successfully! 🎉",
+          icon: "/icon.png",
+          badge: "/badge.png"
+        });
+      }
+    } else {
+      throw new Error("Failed to send subscription to server");
+    }
+
+  } catch (err) {
+    console.error("❌ Notification setup failed:", err);
+    showNotificationStatus(`Setup failed: ${err.message}`, false);
+  }
+}
+
+/* =========================
+   PAGE LOAD
+========================= */
+window.onload = async () => {
+  console.log("🚀 Page loaded");
+  
+  // Load notifications first
+  loadNotifications();
+  
+  // Add sample notification if first time
+  if (notifications.length === 0) {
+    addNotification("Welcome to Momentum!", "Track your health and fitness journey with us.");
+  }
+  
+  await loadProfile();
+  await loadFitness();
+  await autoCoach();
+  
+  // Enable notifications after page load
+  setTimeout(() => {
+    enableNotifications();
+  }, 1000);
+};
+
+/* =========================
+   UI FUNCTIONS
+========================= */
+function show(val, unit = "") {
+  if (!val || val === 0) return "No data";
+  return val + unit;
+}
+
+function handleEnter(event) {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    sendMessage();
+  }
+}
+
+/* =========================
+   PROFILE
+========================= */
+async function loadProfile() {
+  try {
+    const res = await fetch("/getProfile");
+    const data = await res.json();
+    document.getElementById("profileBoxes").innerHTML = `
+      <div class="info-box">Name: ${data.name}</div>
+      <div class="info-box">Age: ${data.age}</div>
+      <div class="info-box">Gender: ${data.gender}</div>
+    `;
+  } catch (err) {
+    console.error("Profile load error:", err);
+  }
+}
+
+/* =========================
+   FITNESS DATA
+========================= */
+async function loadFitness() {
+  try {
+    const res = await fetch("/getFitnessData", { credentials: "include" });
+    fitnessData = await res.json();
+
+    const last = fitnessData[fitnessData.length - 1];
+    document.getElementById("bodyBoxes").innerHTML = `
+      <div class="info-box">Weight: ${show(last.weightKg, " kg")}</div>
+      <div class="info-box">Height: ${last.heightMeters ? last.heightMeters.toFixed(2) : 0} m</div>
+    `;
+
+    buildCharts();
+    buildDateButtons();
+  } catch (err) {
+    console.error("Fitness load error:", err);
+  }
+}
+
+/* =========================
+   CHARTS
+========================= */
+function buildCharts() {
+  const labels = fitnessData.map(d => d.date);
+
+  new Chart(document.getElementById("stepsChart"), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: "Steps",
+        data: fitnessData.map(d => d.steps),
+        borderColor: "#00d4ff",
+        backgroundColor: "rgba(0, 212, 255, 0.1)",
+        tension: 0.4,
+        fill: true
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true
+    }
+  });
+
+  new Chart(document.getElementById("caloriesChart"), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: "Calories",
+        data: fitnessData.map(d => d.calories),
+        borderColor: "#ffb703",
+        backgroundColor: "rgba(255, 183, 3, 0.1)",
+        tension: 0.4,
+        fill: true
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true
+    }
+  });
+
+  new Chart(document.getElementById("heartChart"), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: "Heart Rate",
+        data: fitnessData.map(d => d.avgHeartRate),
+        borderColor: "#00d084",
+        backgroundColor: "rgba(0, 208, 132, 0.2)",
+        tension: 0.4,
+        fill: true
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true
+    }
+  });
+
+  new Chart(document.getElementById("sleepChart"), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: "Sleep Segments",
+        data: fitnessData.map(d => d.sleepSegments),
+        borderColor: "#9b5de5",
+        backgroundColor: "rgba(155, 93, 229, 0.1)",
+        tension: 0.4,
+        fill: true
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true
+    }
+  });
+}
+
+/* =========================
+   DATE TOOLTIP
+========================= */
+function buildDateButtons() {
+  const container = document.getElementById("dateButtons");
+  container.innerHTML = "";
+
+  fitnessData.forEach(d => {
+    const btn = document.createElement("div");
+    btn.className = "date-btn";
+    btn.innerText = d.date;
+
+    const tooltip = document.createElement("div");
+    tooltip.className = "tooltip";
+    tooltip.innerHTML = `
+      Heart rate:${show(d.avgHeartRate, " bpm")}<br>
+      Steps:${show(d.steps)}<br>
+      Calories burnt: ${show(d.calories)}<br>
+      Sleep segments: ${show(d.sleepSegments)}
+    `;
+
+    btn.appendChild(tooltip);
+    btn.onmouseenter = () => tooltip.style.display = "block";
+    btn.onmouseleave = () => tooltip.style.display = "none";
+
+    container.appendChild(btn);
+  });
+}
+
+/* =========================
+   AI AUTO MESSAGE
+========================= */
+async function autoCoach() {
+  addChat("TOM", "Thinking...");
+  try {
+    const res = await fetch("/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: "Give me advice" })
+    });
+    const data = await res.json();
+    
+    const chatBox = document.getElementById("chatBox");
+    if (chatBox.lastChild) {
+      chatBox.removeChild(chatBox.lastChild);
+    }
+    
+    typeWriter("TOM", data.reply);
+  } catch (err) {
+    console.error("Auto coach error:", err);
+  }
+}
+
+/* =========================
+   SEND MESSAGE
+========================= */
+async function sendMessage() {
+  const msg = document.getElementById("userInput").value;
+  if (!msg) return;
+
+  addChat("You", msg);
+  document.getElementById("userInput").value = "";
+
+  addChat("TOM", "Thinking...");
+
+  try {
+    const res = await fetch("/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: msg })
+    });
+    const data = await res.json();
+
+    const chatBox = document.getElementById("chatBox");
+    if (chatBox.lastChild) {
+      chatBox.removeChild(chatBox.lastChild);
+    }
+    
+    typeWriter("TOM", data.reply);
+  } catch (err) {
+    console.error("Chat error:", err);
+    addChat("TOM", "Sorry, I encountered an error.");
+  }
+}
+
+/* =========================
+   CHAT FUNCTIONS
+========================= */
+function addChat(sender, text) {
+  const box = document.getElementById("chatBox");
+  const div = document.createElement("div");
+  div.innerHTML = `<b>${sender}:</b> ${text}`;
+  div.style.marginBottom = "8px";
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
+}
+
+/* =========================
+   TYPE WRITER EFFECT
+========================= */
+function typeWriter(sender, text) {
+  const box = document.getElementById("chatBox");
+  const div = document.createElement("div");
+  div.innerHTML = `<b>${sender}:</b> `;
+  div.style.marginBottom = "8px";
+  box.appendChild(div);
+
+  let i = 0;
+  const speed = 25;
+
+  function typing() {
+    if (i < text.length) {
+      div.innerHTML += text.charAt(i);
+      i++;
+      box.scrollTop = box.scrollHeight;
+      setTimeout(typing, speed);
+    }
+  }
+  typing();
+}
+</script>
+
+</body>
+</html>
